@@ -350,6 +350,14 @@
                             <ComboBoxItem Content="Deutsch"/>
                         </ComboBox>
                     </StackPanel>
+
+                    <!-- Credits -->
+                    <TextBlock HorizontalAlignment="Center" Margin="0,15,0,0" FontSize="11" Foreground="#666">
+                        <Run Text="Made by "/>
+                        <Hyperlink NavigateUri="https://github.com/Walkoud/WinOptimizer.AI" RequestNavigate="Hyperlink_RequestNavigate" Foreground="{StaticResource AccentBrush}" TextDecorations="None">
+                            <Run Text="Walkoud"/>
+                        </Hyperlink>
+                    </TextBlock>
                 </StackPanel>
             </Grid>
         </Border>

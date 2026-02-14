@@ -117,6 +117,23 @@ namespace WinOptimizer.AI
             }
         }
 
+        private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = e.Uri.AbsoluteUri,
+                    UseShellExecute = true
+                });
+                e.Handled = true;
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Error opening link: {ex.Message}");
+            }
+        }
+
         private void InitializeApplication()
         {
             try

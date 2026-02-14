@@ -1,0 +1,34 @@
+<Window x:Class="WinOptimizer.AI.HelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Help - WinOptimizer.AI" Height="450" Width="600"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <TextBlock Text="Help &amp; Documentation" Foreground="White" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+        
+        <ScrollViewer Grid.Row="1">
+            <StackPanel>
+                <TextBlock Text="Global Monitoring" Foreground="#007ACC" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                <TextBlock Text="Monitors your system resources (CPU, GPU, RAM, Network) in real-time." Foreground="#CCC" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                
+                <TextBlock Text="Game Mode" Foreground="#007ACC" FontSize="16" FontWeight="Bold" Margin="0,10,0,10"/>
+                <TextBlock Text="Optimizes your PC for gaming by prioritizing game processes and reducing background activity." Foreground="#CCC" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                
+                <TextBlock Text="Auto-Kill" Foreground="#007ACC" FontSize="16" FontWeight="Bold" Margin="0,10,0,10"/>
+                <TextBlock Text="Automatically terminates processes that exceed defined resource thresholds to prevent lag." Foreground="#CCC" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                
+                <TextBlock Text="Low Impact Mode" Foreground="#007ACC" FontSize="16" FontWeight="Bold" Margin="0,10,0,10"/>
+                <TextBlock Text="Reduces the resource usage of this application itself." Foreground="#CCC" TextWrapping="Wrap" Margin="0,0,0,10"/>
+            </StackPanel>
+        </ScrollViewer>
+        
+        <Button Grid.Row="2" Content="Close" Click="BtnClose_Click" Width="100" Height="30" HorizontalAlignment="Right" Margin="0,20,0,0" Background="#333" Foreground="White" BorderThickness="0"/>
+    </Grid>
+</Window>

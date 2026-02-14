@@ -1,0 +1,127 @@
+<Window x:Class="WinOptimizer.AI.ProcessSelectorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Select Processes to Whitelist" Height="600" Width="800"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#3F3F46"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#CCCCCC"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#0078D4"/>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="RowBackground" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="AlternatingRowBackground" Value="#333337"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#444444"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="#CCCCCC"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="#444444"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="Select Running Processes" FontSize="20" FontWeight="Bold" Foreground="White"/>
+            <TextBlock Text="Processes are sorted by RAM usage. Select items to add to your whitelist." 
+                       FontSize="14" Foreground="#AAAAAA" Margin="0,5,0,0"/>
+        </StackPanel>
+
+        <!-- Search -->
+        <Border Grid.Row="1" Background="{StaticResource SurfaceBrush}" CornerRadius="4" Margin="0,0,0,15" Padding="5">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="🔍" VerticalAlignment="Center" Margin="10,0" Foreground="#AAAAAA"/>
+                <TextBox x:Name="SearchBox" Grid.Column="1" Background="Transparent" BorderThickness="0" 
+                         Foreground="White" FontSize="14" Padding="5" TextChanged="SearchBox_TextChanged"
+                         VerticalContentAlignment="Center"/>
+                <TextBlock IsHitTestVisible="False" Text="Search processes..." Grid.Column="1" 
+                           VerticalAlignment="Center" Margin="5,0,0,0" Foreground="#666666">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <!-- Process List -->
+        <DataGrid x:Name="ProcessGrid" Grid.Row="2" SelectionMode="Extended">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Width="50">
+                    <DataGridTemplateColumn.Header>
+                        <CheckBox x:Name="SelectAllCheckBox" Checked="SelectAll_Checked" Unchecked="SelectAll_Unchecked"/>
+                    </DataGridTemplateColumn.Header>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" 
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                
+                <DataGridTextColumn Header="Process Name" Binding="{Binding Name}" Width="200" FontWeight="Bold"/>
+                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80"/>
+                <DataGridTextColumn Header="RAM Usage" Binding="{Binding RamUsageFormatted}" Width="120"/>
+                <DataGridTextColumn Header="Window Title" Binding="{Binding WindowTitle}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Footer Actions -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Refresh List" Click="BtnRefresh_Click" Background="#333333" Margin="0,0,10,0"/>
+            <Button Content="Cancel" Click="BtnCancel_Click" Background="#333333" Margin="0,0,10,0"/>
+            <Button x:Name="BtnAddSelected" Content="Add Selected to Whitelist" Click="BtnAddSelected_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

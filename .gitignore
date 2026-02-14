@@ -1,0 +1,26 @@
+# --- Répertoires de build ---
+bin/
+obj/
+
+# --- Visual Studio ---
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+# --- Packages NuGet ---
+*.nupkg
+packages/
+# On ignore les fichiers de restauration locale
+project.lock.json
+project.assets.json
+
+# --- Fichiers système et logs ---
+*.log
+.DS_Store
+Thumbs.db
+
+# --- Fichiers utilisateur / Secrets ---
+appsettings.Development.json
+*.pfx
+*.publishsettings

@@ -1,4 +1,4 @@
-# WinOptimizer.AI 🚀
+# WinOptimizer.AI 
 
 **Understand. Monitor. Optimize.**
 

@@ -30,17 +30,22 @@ jobs:
       run: dotnet build src/WinOptimizer.AI.csproj --configuration Release --no-restore
 
     - name: Publish
-      run: dotnet publish src/WinOptimizer.AI.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o ./publish
+      # Désactivation du SingleFile pour éviter les crashs WPF et du SelfContained pour la légèreté
+      run: dotnet publish src/WinOptimizer.AI.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=false -p:PublishReadyToRun=true -o ./publish
+
+    - name: Zip Artifact
+      # On compresse tout le dossier publish pour que l'app ait toutes ses DLL à côté
+      shell: pwsh
+      run: Compress-Archive -Path ./publish/* -DestinationPath ./WinOptimizer.AI_v1.0.0.zip
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: WinOptimizer.AI-Build
-        path: ./publish
+        path: ./WinOptimizer.AI_v1.0.0.zip
 
   release:
     needs: build
-    # On déclenche si c'est un tag OU un push sur main pour être sûr que tu aies ta release
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
@@ -51,12 +56,12 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: WinOptimizer.AI-Build
-        path: ./release_files
+        path: .
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: ./release_files/*.exe
+        # On envoie le fichier ZIP au lieu de l'EXE seul
+        files: ./WinOptimizer.AI_v1.0.0.zip
         generate_release_notes: true
-        # Permet d'écraser la release si tu pousses le même tag plusieurs fois pendant tes tests
         make_latest: true

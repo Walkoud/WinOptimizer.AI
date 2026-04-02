@@ -6,6 +6,9 @@ Welcome to **WinOptimizer.AI**! This tool is designed to help you understand wha
 
 ⚠️ **Real Talk:** This is **not a magic solution** that will download more RAM or double your FPS instantly. Instead, it's a **powerful diagnostic and management tool** to help you identify and tame apps that are eating up your resources in the background.
 
+<img width="1286" height="893" alt="image" src="https://github.com/user-attachments/assets/dbfeccdd-2092-47bd-a65e-0f5cc95ed193" />
+
+
 ## 🎯 Who is this for?
 
 *   **Low-end / Mid-range PCs**: If every % of CPU or MB of RAM counts for your gaming or work session, this tool is for you.

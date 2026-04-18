@@ -36,7 +36,7 @@ jobs:
     - name: Zip Artifact
       # On compresse tout le dossier publish pour que l'app ait toutes ses DLL à côté
       shell: pwsh
-      run: Compress-Archive -Path ./publish/* -DestinationPath ./WinOptimizer.AI_v1.0.0.zip
+      run: Compress-Archive -Path ./publish/* -DestinationPath ./WinOptimizer.AI_Portable.zip
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4

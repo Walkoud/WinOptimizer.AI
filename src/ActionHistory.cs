@@ -19,6 +19,7 @@ namespace WinOptimizer.AI
         ServiceManual,      // Service startup changed to manual
         TaskDisabled,       // Task was disabled
         AutorunDisabled,    // Autorun was disabled
+        StateRestored,      // Previous state restored from history
         Snooze              // Notification was snoozed
     }
 
@@ -37,11 +38,14 @@ namespace WinOptimizer.AI
         public double? GpuUsage { get; set; } // If applicable
         public string Reason { get; set; } // Why the action was taken
         public string Source { get; set; } // "GameMode", "User", "AI", etc.
+        public string PreviousStateJson { get; set; } // State before change
+        public string AppliedStateJson { get; set; } // State after change
 
         // Formatted display properties
         public string TimeAgo => GetTimeAgo(Timestamp);
         public string ActionIcon => GetActionIcon(Action);
         public string ActionDescription => GetActionDescription(Action, TargetName, Source);
+        public string ChangeSummary => BuildChangeSummary();
 
         private string GetTimeAgo(DateTime time)
         {
@@ -63,6 +67,7 @@ namespace WinOptimizer.AI
                 ActionType.ServiceManual => "⚙️",
                 ActionType.TaskDisabled => "📅",
                 ActionType.AutorunDisabled => "🚀",
+                ActionType.StateRestored => "↩️",
                 ActionType.Snooze => "😴",
                 _ => "⚡"
             };
@@ -79,12 +84,28 @@ namespace WinOptimizer.AI
                 ActionType.ServiceManual => "Set service to manual",
                 ActionType.TaskDisabled => "Disabled task",
                 ActionType.AutorunDisabled => "Disabled autorun",
+                ActionType.StateRestored => "Restored state for",
                 ActionType.Snooze => "Snoozed",
                 _ => "Action"
             };
 
             var sourceText = string.IsNullOrEmpty(source) ? "" : $" ({source})";
             return $"{actionText} {targetName}{sourceText}";
+        }
+
+        private string BuildChangeSummary()
+        {
+            if (!string.IsNullOrWhiteSpace(PreviousStateJson) && !string.IsNullOrWhiteSpace(AppliedStateJson))
+            {
+                return $"{PreviousStateJson} -> {AppliedStateJson}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(AppliedStateJson))
+            {
+                return AppliedStateJson;
+            }
+
+            return string.Empty;
         }
     }
 
@@ -113,7 +134,7 @@ namespace WinOptimizer.AI
 
         public static void Record(ActionType action, string targetType, string targetName,
             string targetPath = "", int? processId = null, double? gpuUsage = null,
-            string reason = "", string source = "")
+            string reason = "", string source = "", string previousStateJson = "", string appliedStateJson = "")
         {
             var entry = new ActionHistoryEntry
             {
@@ -124,7 +145,9 @@ namespace WinOptimizer.AI
                 ProcessId = processId,
                 GpuUsage = gpuUsage,
                 Reason = reason,
-                Source = source
+                Source = source,
+                PreviousStateJson = previousStateJson,
+                AppliedStateJson = appliedStateJson
             };
 
             _entries.Insert(0, entry); // Add to top (newest first)

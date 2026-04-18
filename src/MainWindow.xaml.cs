@@ -21,6 +21,7 @@ namespace WinOptimizer.AI
         private ObservableCollection<ServiceData> _serviceRecommendations;
         private ObservableCollection<TaskData> _tasks;
         private ObservableCollection<AutorunData> _autoruns;
+        private ObservableCollection<OptimizationBackupInfo> _backupInfos;
         private bool _uiReady;
         
         public MainWindow()
@@ -101,17 +102,18 @@ namespace WinOptimizer.AI
                     // Update Title based on selection
                     switch (index)
                     {
-                        case 0: PageTitle.Text = "Dashboard"; break;
-                        case 1: PageTitle.Text = "Processes"; break;
-                        case 2: PageTitle.Text = "Game Mode"; break;
-                        case 3: PageTitle.Text = "Services"; break;
-                        case 4: PageTitle.Text = "Tasks"; break;
-                        case 5: PageTitle.Text = "Autoruns"; break;
-                        case 6: 
-                            PageTitle.Text = "Settings";
+                        case 0: PageTitle.Text = LanguageManager.GetString("TabDashboard").Replace("📊 ", "").Replace("📊", ""); break;
+                        case 1: PageTitle.Text = LanguageManager.GetString("TabProcesses").Replace("⚡ ", "").Replace("⚡", ""); break;
+                        case 2: PageTitle.Text = LanguageManager.GetString("TabGameMode").Replace("🎮 ", "").Replace("🎮", ""); break;
+                        case 3: PageTitle.Text = LanguageManager.GetString("TabServices").Replace("⚙️ ", "").Replace("⚙️", ""); break;
+                        case 4: PageTitle.Text = LanguageManager.GetString("TabTasks").Replace("📅 ", "").Replace("📅", ""); break;
+                        case 5: PageTitle.Text = LanguageManager.GetString("TabAutoruns").Replace("🚀 ", "").Replace("🚀", ""); break;
+                        case 6: PageTitle.Text = LanguageManager.GetString("TabBackups").Replace("💾 ", "").Replace("💾", ""); break;
+                        case 7:
+                            PageTitle.Text = LanguageManager.GetString("TabSettings").Replace("⚙️ ", "").Replace("⚙️", "");
                             UpdateMonitoringButtonsState(_gpuMonitor != null && _gpuMonitor.IsMonitoring);
                             break;
-                        case 7: PageTitle.Text = "Optimization Tools"; break;
+                        case 8: PageTitle.Text = LanguageManager.GetString("TabOtherApps").Replace("🛠️ ", "").Replace("🛠️", ""); break;
                     }
                 }
             }
@@ -140,6 +142,11 @@ namespace WinOptimizer.AI
             {
                 var langPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Languages.json");
                 LanguageManager.LoadLanguages(langPath);
+                var missingTranslations = LanguageManager.GetMissingTranslationKeys();
+                foreach (var entry in missingTranslations)
+                {
+                    LogMessage($"[i18n] Missing keys in {entry.Key}: {entry.Value.Count} (fallback to English enabled)");
+                }
 
                 _processes = new ObservableCollection<ProcessData>();
                 _processRecommendations = new ObservableCollection<ProcessData>();
@@ -147,11 +154,13 @@ namespace WinOptimizer.AI
                 _serviceRecommendations = new ObservableCollection<ServiceData>();
                 _tasks = new ObservableCollection<TaskData>();
                 _autoruns = new ObservableCollection<AutorunData>();
+                _backupInfos = new ObservableCollection<OptimizationBackupInfo>();
                 _gpuHistory = new GpuDetectionHistory();
 
                 ProcessDataGrid.ItemsSource = _processes;
                 ProcessRecsDataGrid.ItemsSource = _processRecommendations;
                 GpuHistoryDataGrid.ItemsSource = _gpuHistory.Events;
+                BackupsDataGrid.ItemsSource = _backupInfos;
 
                 try
                 {
@@ -183,6 +192,7 @@ namespace WinOptimizer.AI
                 }
 
                 LogMessage(LanguageManager.GetString("LogReady"));
+                RefreshBackupList();
             }
             catch (Exception ex)
             {
@@ -256,6 +266,7 @@ namespace WinOptimizer.AI
             if (NavServices != null) NavServices.Content = LanguageManager.GetString("TabServices");
             if (NavTasks != null) NavTasks.Content = LanguageManager.GetString("TabTasks");
             if (NavAutoruns != null) NavAutoruns.Content = LanguageManager.GetString("TabAutoruns");
+            if (NavBackups != null) NavBackups.Content = LanguageManager.GetString("TabBackups");
             if (NavSettings != null) NavSettings.Content = LanguageManager.GetString("TabSettings");
             if (NavOtherApps != null) NavOtherApps.Content = LanguageManager.GetString("TabOtherApps");
 
@@ -269,12 +280,64 @@ namespace WinOptimizer.AI
                 case 3: PageTitle.Text = LanguageManager.GetString("TabServices").Replace("⚙️ ", "").Replace("⚙️", ""); break;
                 case 4: PageTitle.Text = LanguageManager.GetString("TabTasks").Replace("📅 ", "").Replace("📅", ""); break;
                 case 5: PageTitle.Text = LanguageManager.GetString("TabAutoruns").Replace("🚀 ", "").Replace("🚀", ""); break;
-                case 6: PageTitle.Text = LanguageManager.GetString("TabSettings").Replace("⚙️ ", "").Replace("⚙️", ""); break;
-                case 7: PageTitle.Text = LanguageManager.GetString("TabOtherApps").Replace("🛠️ ", "").Replace("🛠️", ""); break;
+                case 6: PageTitle.Text = LanguageManager.GetString("TabBackups").Replace("💾 ", "").Replace("💾", ""); break;
+                case 7: PageTitle.Text = LanguageManager.GetString("TabSettings").Replace("⚙️ ", "").Replace("⚙️", ""); break;
+                case 8: PageTitle.Text = LanguageManager.GetString("TabOtherApps").Replace("🛠️ ", "").Replace("🛠️", ""); break;
             }
 
             // Settings Page
             if (LblLanguage != null) LblLanguage.Text = LanguageManager.GetString("LblLanguage");
+
+            // Global buttons
+            if (BtnProcessSettings != null) BtnProcessSettings.ToolTip = LanguageManager.GetString("BtnSettingsShort");
+            if (BtnProcessHelp != null) BtnProcessHelp.ToolTip = LanguageManager.GetString("BtnHelp");
+            if (BtnGoToGameMode != null) BtnGoToGameMode.Content = LanguageManager.GetString("BtnGoToGameMode");
+            if (BtnClearHistory != null) BtnClearHistory.Content = LanguageManager.GetString("BtnClear");
+            if (BtnExportHistory != null) BtnExportHistory.Content = LanguageManager.GetString("BtnExport");
+            if (BtnViewWhitelist != null) BtnViewWhitelist.Content = LanguageManager.GetString("BtnManageWhitelist");
+            if (BtnViewHistory != null) BtnViewHistory.Content = LanguageManager.GetString("BtnViewHistory");
+
+            // Game mode
+            if (BtnRestoreClosedApps != null) BtnRestoreClosedApps.Content = LanguageManager.GetString("BtnRestoreApps");
+            if (BtnManageWhitelist != null) BtnManageWhitelist.Content = LanguageManager.GetString("BtnWhitelist");
+            if (BtnManageBlacklist != null) BtnManageBlacklist.Content = LanguageManager.GetString("BtnBlacklist");
+            if (BtnAddGameProcess != null) BtnAddGameProcess.Content = LanguageManager.GetString("BtnAddGame");
+            if (AutoKillCheckBox != null) AutoKillCheckBox.Content = LanguageManager.GetString("ChkAutoKillIntruders");
+
+            // Services
+            if (BtnScanServices != null) BtnScanServices.Content = LanguageManager.GetString("BtnScanServices");
+            if (BtnCopyServicePrompt != null) BtnCopyServicePrompt.Content = LanguageManager.GetString("BtnCopyPrompt");
+            if (BtnPasteServiceAI != null) BtnPasteServiceAI.Content = LanguageManager.GetString("BtnPasteAI");
+            if (BtnEditServicePrompt != null) BtnEditServicePrompt.Content = LanguageManager.GetString("BtnEditPrompt");
+            if (BtnServiceHistory != null) BtnServiceHistory.Content = LanguageManager.GetString("BtnHistory");
+            if (BtnBackupServices != null) BtnBackupServices.Content = LanguageManager.GetString("BtnBackup");
+            if (BtnOpenServicesMsc != null) BtnOpenServicesMsc.Content = LanguageManager.GetString("BtnOpenServicesMsc");
+
+            // Tasks
+            if (BtnScanTasks != null) BtnScanTasks.Content = LanguageManager.GetString("BtnScanTasks");
+            if (BtnCopyTaskPrompt != null) BtnCopyTaskPrompt.Content = LanguageManager.GetString("BtnCopyPrompt");
+            if (BtnPasteTaskAI != null) BtnPasteTaskAI.Content = LanguageManager.GetString("BtnPasteAI");
+            if (BtnEditTaskPrompt != null) BtnEditTaskPrompt.Content = LanguageManager.GetString("BtnEditPrompt");
+            if (BtnTaskHistory != null) BtnTaskHistory.Content = LanguageManager.GetString("BtnHistory");
+            if (BtnBackupTasks != null) BtnBackupTasks.Content = LanguageManager.GetString("BtnBackup");
+            if (BtnOpenTaskScheduler != null) BtnOpenTaskScheduler.Content = LanguageManager.GetString("BtnOpenTaskScheduler");
+
+            // Autoruns
+            if (BtnScanAutoruns != null) BtnScanAutoruns.Content = LanguageManager.GetString("BtnScanAutoruns");
+            if (BtnBrowseAutorunFolder != null) BtnBrowseAutorunFolder.Content = LanguageManager.GetString("BtnBrowseFolder");
+            if (BtnCopyAutorunPrompt != null) BtnCopyAutorunPrompt.Content = LanguageManager.GetString("BtnCopyPrompt");
+            if (BtnPasteAutorunAI != null) BtnPasteAutorunAI.Content = LanguageManager.GetString("BtnPasteAI");
+            if (BtnEditAutorunPrompt != null) BtnEditAutorunPrompt.Content = LanguageManager.GetString("BtnEditPrompt");
+            if (BtnAutorunHistory != null) BtnAutorunHistory.Content = LanguageManager.GetString("BtnHistory");
+            if (BtnBackupAutoruns != null) BtnBackupAutoruns.Content = LanguageManager.GetString("BtnBackup");
+            if (BtnOpenStartupApps != null) BtnOpenStartupApps.Content = LanguageManager.GetString("BtnOpenStartupApps");
+
+            // Backups
+            if (BtnCreateBackupFromTab != null) BtnCreateBackupFromTab.Content = LanguageManager.GetString("BtnCreateBackup");
+            if (BtnRestoreSelectedBackup != null) BtnRestoreSelectedBackup.Content = LanguageManager.GetString("BtnRestoreSelected");
+            if (BtnRenameBackup != null) BtnRenameBackup.Content = LanguageManager.GetString("BtnRename");
+            if (BtnDeleteBackup != null) BtnDeleteBackup.Content = LanguageManager.GetString("BtnDelete");
+            if (BtnRefreshBackups != null) BtnRefreshBackups.Content = LanguageManager.GetString("BtnRefresh");
             
             // Note: Many settings labels are hardcoded in XAML without x:Name. 
             // In a real-world scenario, we would bind them or name them.
@@ -343,13 +406,13 @@ namespace WinOptimizer.AI
                     if (isMonitoring)
                     {
                         GpuStatusIcon.Text = "🟢";
-                        GpuStatusText.Text = _gpuMonitor.DevMode ? "Active (Dev)" : "Active";
+                        GpuStatusText.Text = _gpuMonitor.DevMode ? LanguageManager.GetString("StatusActiveDev") : LanguageManager.GetString("StatusActive");
                         GpuStatusText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 167, 69)); // Green
                     }
                     else
                     {
                         GpuStatusIcon.Text = "⚪";
-                        GpuStatusText.Text = "Stopped";
+                        GpuStatusText.Text = LanguageManager.GetString("StatusStopped");
                         GpuStatusText.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(170, 170, 170)); // Gray
                     }
                 }
@@ -366,13 +429,13 @@ namespace WinOptimizer.AI
             {
                 if (isMonitoring)
                 {
-                    BtnToggleMonitoring.Content = "⏹️ STOP MONITORING";
+                    BtnToggleMonitoring.Content = LanguageManager.GetString("BtnStopMonitoring");
                     BtnToggleMonitoring.Style = secondaryStyle;
                     BtnToggleMonitoring.Width = 180;
                 }
                 else
                 {
-                    BtnToggleMonitoring.Content = "▶️ START MONITORING";
+                    BtnToggleMonitoring.Content = LanguageManager.GetString("BtnStartMonitoring");
                     BtnToggleMonitoring.Style = modernStyle;
                     BtnToggleMonitoring.Width = 200;
                 }
@@ -383,12 +446,12 @@ namespace WinOptimizer.AI
             {
                 if (isMonitoring)
                 {
-                    BtnToggleMonitoringSettings.Content = "⏹️ STOP MONITORING";
+                    BtnToggleMonitoringSettings.Content = LanguageManager.GetString("BtnStopMonitoring");
                     BtnToggleMonitoringSettings.Style = secondaryStyle;
                 }
                 else
                 {
-                    BtnToggleMonitoringSettings.Content = "▶️ START MONITORING";
+                    BtnToggleMonitoringSettings.Content = LanguageManager.GetString("BtnStartMonitoring");
                     BtnToggleMonitoringSettings.Style = modernStyle;
                 }
             }
@@ -467,7 +530,7 @@ namespace WinOptimizer.AI
 
         private void BtnProcessSettings_Click(object sender, RoutedEventArgs e)
         {
-            MainTabControl.SelectedIndex = 6;
+            MainTabControl.SelectedIndex = 7;
             PageTitle.Text = "Settings";
             // Ensure button state is correct when navigating via top bar
             UpdateMonitoringButtonsState(_gpuMonitor != null && _gpuMonitor.IsMonitoring);
@@ -491,7 +554,7 @@ namespace WinOptimizer.AI
         {
             MainTabControl.SelectedIndex = 2; // Index 2 is Game Mode Tab
             PageTitle.Text = "Game Mode";
-            // Tab indices: 0=Dashboard, 1=Processes, 2=GameMode, 3=Services, 4=Tasks, 5=Autoruns
+            // Tab indices: 0=Dashboard, 1=Processes, 2=GameMode, 3=Services, 4=Tasks, 5=Autoruns, 6=Backups
         }
 
         private void BtnRestoreClosedApps_Click(object sender, RoutedEventArgs e)
@@ -967,6 +1030,20 @@ namespace WinOptimizer.AI
             LogMessage(LanguageManager.GetString("StatusCopied"));
         }
 
+        private void BtnEditServicePrompt_Click(object sender, RoutedEventArgs e)
+        {
+            if (_services.Count == 0)
+            {
+                MessageBox.Show(LanguageManager.GetString("MsgNoScanData"));
+                return;
+            }
+
+            var noXbox = ChkNoXbox?.IsChecked ?? false;
+            var noStore = ChkNoStore?.IsChecked ?? false;
+            var prompt = AiPromptBuilder.BuildServicePrompt(_services.ToList(), noXbox, noStore);
+            OpenPromptEditor(prompt);
+        }
+
         private void BtnPasteServiceAI_Click(object sender, RoutedEventArgs e)
         {
             var clipboard = Clipboard.GetText();
@@ -1061,13 +1138,15 @@ namespace WinOptimizer.AI
             {
                 try
                 {
-                    // Apply the service changes using selected values
-                    var startupType = service.UserSelectedStartup;
-                    var desiredState = service.UserSelectedState;
-                    
-                    LogMessage($"Applied to {service.ServiceName}: Startup={startupType}, State={desiredState}");
-                    
-                    // Remove from both collections
+                    var previousState = BuildServiceStateSnapshot(service.CurrentStartup, service.CurrentState);
+                    ApplyServiceConfiguration(service);
+                    var appliedState = BuildServiceStateSnapshot(service.UserSelectedStartup, service.UserSelectedState);
+                    var actionType = service.UserSelectedStartup?.Equals("Disabled", StringComparison.OrdinalIgnoreCase) == true
+                        ? ActionType.ServiceDisabled
+                        : ActionType.ServiceManual;
+                    ActionHistory.Record(actionType, "Service", service.ServiceName, service.Path, reason: "Applied from Services tab", source: "User",
+                        previousStateJson: previousState, appliedStateJson: appliedState);
+                    LogMessage($"Applied to {service.ServiceName}: Startup={service.UserSelectedStartup}, State={service.UserSelectedState}");
                     _serviceRecommendations.Remove(service);
                     _services.Remove(service);
                 }
@@ -1092,13 +1171,30 @@ namespace WinOptimizer.AI
         private void BtnApplyServices_Click(object sender, RoutedEventArgs e)
         {
             var toApply = _serviceRecommendations.ToList();
+            var applied = 0;
             foreach (var s in toApply)
             {
-                LogMessage($"Applied to {s.ServiceName}: Startup={s.UserSelectedStartup}, State={s.UserSelectedState}");
-                _serviceRecommendations.Remove(s);
-                _services.Remove(s);
+                try
+                {
+                    var previousState = BuildServiceStateSnapshot(s.CurrentStartup, s.CurrentState);
+                    ApplyServiceConfiguration(s);
+                    var appliedState = BuildServiceStateSnapshot(s.UserSelectedStartup, s.UserSelectedState);
+                    var actionType = s.UserSelectedStartup?.Equals("Disabled", StringComparison.OrdinalIgnoreCase) == true
+                        ? ActionType.ServiceDisabled
+                        : ActionType.ServiceManual;
+                    ActionHistory.Record(actionType, "Service", s.ServiceName, s.Path, reason: "Bulk apply from Services tab", source: "User",
+                        previousStateJson: previousState, appliedStateJson: appliedState);
+                    LogMessage($"Applied to {s.ServiceName}: Startup={s.UserSelectedStartup}, State={s.UserSelectedState}");
+                    _serviceRecommendations.Remove(s);
+                    _services.Remove(s);
+                    applied++;
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"[ERROR] Failed service apply for {s.ServiceName}: {ex.Message}");
+                }
             }
-            LogMessage(LanguageManager.GetString("LogApplied", toApply.Count));
+            LogMessage(LanguageManager.GetString("LogApplied", applied));
         }
         #endregion
 
@@ -1124,6 +1220,18 @@ namespace WinOptimizer.AI
             var prompt = AiPromptBuilder.BuildTaskPrompt(_tasks.ToList());
             Clipboard.SetText(prompt);
             LogMessage(LanguageManager.GetString("StatusCopied"));
+        }
+
+        private void BtnEditTaskPrompt_Click(object sender, RoutedEventArgs e)
+        {
+            if (_tasks.Count == 0)
+            {
+                MessageBox.Show(LanguageManager.GetString("MsgNoScanData"));
+                return;
+            }
+
+            var prompt = AiPromptBuilder.BuildTaskPrompt(_tasks.ToList());
+            OpenPromptEditor(prompt);
         }
 
         private void BtnPasteTaskAI_Click(object sender, RoutedEventArgs e)
@@ -1196,9 +1304,26 @@ namespace WinOptimizer.AI
         {
             if (sender is Button btn && btn.DataContext is TaskData task)
             {
-                // Logic to stop/disable task
-                LogMessage($"Applied AI recommendation to task: {task.TaskName}");
-                _tasks.Remove(task);
+                try
+                {
+                    var previousState = BuildTaskStateSnapshot(task.IsEnabled);
+                    if (!DisableScheduledTask(task))
+                    {
+                        MessageBox.Show($"Unable to disable task '{task.TaskName}'.", "Disable Task", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var appliedState = BuildTaskStateSnapshot(false);
+                    ActionHistory.Record(ActionType.TaskDisabled, "Task", task.TaskName, task.TaskPath, reason: "Disabled from Tasks tab", source: "User",
+                        previousStateJson: previousState, appliedStateJson: appliedState);
+                    LogMessage($"Disabled task: {task.TaskName}");
+                    _tasks.Remove(task);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to disable task '{task.TaskName}': {ex.Message}", "Disable Task Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    LogMessage($"[ERROR] Failed to disable task {task.TaskName}: {ex.Message}");
+                }
             }
         }
 
@@ -1215,12 +1340,29 @@ namespace WinOptimizer.AI
         private void BtnApplyTasks_Click(object sender, RoutedEventArgs e)
         {
             var toApply = _tasks.Where(t => !string.IsNullOrEmpty(t.AiAction)).ToList();
+            var applied = 0;
             foreach (var t in toApply)
             {
-                // Apply...
-                _tasks.Remove(t);
+                try
+                {
+                    var previousState = BuildTaskStateSnapshot(t.IsEnabled);
+                    if (!ApplyTaskAiRecommendation(t))
+                    {
+                        continue;
+                    }
+
+                    var appliedState = BuildTaskStateSnapshot(false);
+                    ActionHistory.Record(ActionType.TaskDisabled, "Task", t.TaskName, t.TaskPath, reason: "Bulk apply from Tasks tab", source: "User",
+                        previousStateJson: previousState, appliedStateJson: appliedState);
+                    _tasks.Remove(t);
+                    applied++;
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"[ERROR] Failed task apply for {t.TaskName}: {ex.Message}");
+                }
             }
-            LogMessage(LanguageManager.GetString("LogApplied", toApply.Count));
+            LogMessage(LanguageManager.GetString("LogApplied", applied));
         }
         #endregion
 
@@ -1246,6 +1388,18 @@ namespace WinOptimizer.AI
             var prompt = AiPromptBuilder.BuildAutorunPrompt(_autoruns.ToList());
             Clipboard.SetText(prompt);
             LogMessage(LanguageManager.GetString("StatusCopied"));
+        }
+
+        private void BtnEditAutorunPrompt_Click(object sender, RoutedEventArgs e)
+        {
+            if (_autoruns.Count == 0)
+            {
+                MessageBox.Show(LanguageManager.GetString("MsgNoScanData"));
+                return;
+            }
+
+            var prompt = AiPromptBuilder.BuildAutorunPrompt(_autoruns.ToList());
+            OpenPromptEditor(prompt);
         }
 
         private void BtnPasteAutorunAI_Click(object sender, RoutedEventArgs e)
@@ -1290,9 +1444,26 @@ namespace WinOptimizer.AI
         {
             if (sender is Button btn && btn.DataContext is AutorunData autorun)
             {
-                // Logic to stop/disable autorun
-                LogMessage($"Applied AI recommendation to autorun: {autorun.EntryName}");
-                _autoruns.Remove(autorun);
+                try
+                {
+                    var previousState = BuildAutorunStateSnapshot(autorun.Location, autorun.EntryName, autorun.Command);
+                    if (!DisableAutorunEntry(autorun))
+                    {
+                        MessageBox.Show($"Unable to disable autorun '{autorun.EntryName}'.", "Disable Autorun", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var appliedState = BuildAutorunStateSnapshot(autorun.Location, autorun.EntryName, null);
+                    ActionHistory.Record(ActionType.AutorunDisabled, "Autorun", autorun.EntryName, autorun.Path, reason: "Disabled from Autoruns tab", source: "User",
+                        previousStateJson: previousState, appliedStateJson: appliedState);
+                    LogMessage($"Disabled autorun: {autorun.EntryName}");
+                    _autoruns.Remove(autorun);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to disable autorun '{autorun.EntryName}': {ex.Message}", "Disable Autorun Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    LogMessage($"[ERROR] Failed to disable autorun {autorun.EntryName}: {ex.Message}");
+                }
             }
         }
 
@@ -1418,12 +1589,460 @@ namespace WinOptimizer.AI
         private void BtnApplyAutoruns_Click(object sender, RoutedEventArgs e)
         {
             var toApply = _autoruns.Where(a => !string.IsNullOrEmpty(a.AiAction)).ToList();
+            var applied = 0;
             foreach (var a in toApply)
             {
-                // Apply...
-                _autoruns.Remove(a);
+                try
+                {
+                    var previousState = BuildAutorunStateSnapshot(a.Location, a.EntryName, a.Command);
+                    if (!ApplyAutorunAiRecommendation(a))
+                    {
+                        continue;
+                    }
+
+                    var appliedState = BuildAutorunStateSnapshot(a.Location, a.EntryName, null);
+                    ActionHistory.Record(ActionType.AutorunDisabled, "Autorun", a.EntryName, a.Path, reason: "Bulk apply from Autoruns tab", source: "User",
+                        previousStateJson: previousState, appliedStateJson: appliedState);
+                    _autoruns.Remove(a);
+                    applied++;
+                }
+                catch (Exception ex)
+                {
+                    LogMessage($"[ERROR] Failed autorun apply for {a.EntryName}: {ex.Message}");
+                }
             }
-            LogMessage(LanguageManager.GetString("LogApplied", toApply.Count));
+            LogMessage(LanguageManager.GetString("LogApplied", applied));
+        }
+
+        private void BtnCreateOptimizationBackup_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var servicesForBackup = _services.Concat(_serviceRecommendations).DistinctBy(s => s.ServiceName).ToList();
+                var tasksForBackup = _tasks.ToList();
+                var autorunsForBackup = _autoruns.ToList();
+
+                if (servicesForBackup.Count == 0 && tasksForBackup.Count == 0 && autorunsForBackup.Count == 0)
+                {
+                    MessageBox.Show("No data available to backup. Run Services/Tasks/Autoruns scans first.", "Backup", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var defaultName = $"Backup {DateTime.Now:yyyy-MM-dd HH-mm-ss}";
+                var backupName = AskTextInput("Create Backup", "Backup name:", defaultName);
+                if (backupName == null)
+                {
+                    return;
+                }
+
+                var backup = OptimizationBackupManager.CreateNamedBackup(backupName, servicesForBackup, tasksForBackup, autorunsForBackup);
+                LogMessage($"Backup created: {backup.BackupName} ({backup.BackupId})");
+                RefreshBackupList();
+                MessageBox.Show("Backup created successfully.", "Backup", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"[ERROR] Backup creation failed: {ex.Message}");
+                MessageBox.Show($"Failed to create backup: {ex.Message}", "Backup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnRestoreOptimizationBackup_Click(object sender, RoutedEventArgs e)
+        {
+            BtnOpenBackupsTab_Click(sender, e);
+        }
+
+        private void BtnOpenBackupsTab_Click(object sender, RoutedEventArgs e)
+        {
+            MainTabControl.SelectedIndex = 6;
+            PageTitle.Text = "Backups";
+            RefreshBackupList();
+        }
+
+        private void BtnRefreshBackups_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshBackupList();
+        }
+
+        private void BtnRestoreSelectedBackup_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = BackupsDataGrid.SelectedItem as OptimizationBackupInfo;
+            if (selected == null)
+            {
+                MessageBox.Show("Select a backup first.", "Restore Backup", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show($"Restore backup '{selected.BackupName}'?", "Restore Backup", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                var result = OptimizationBackupManager.RestoreBackupById(selected.BackupId);
+                LogMessage($"Backup restore finished. Success={result.Succeeded}, Failed={result.Failed}");
+                if (result.Errors.Count > 0)
+                {
+                    var details = string.Join(Environment.NewLine, result.Errors.Take(8));
+                    MessageBox.Show($"Restore completed with errors.\nSuccess: {result.Succeeded}\nFailed: {result.Failed}\n\n{details}", "Restore Backup", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                else
+                {
+                    MessageBox.Show($"Restore completed.\nSuccess: {result.Succeeded}", "Restore Backup", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
+                RefreshOptimizationLists();
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"[ERROR] Backup restore failed: {ex.Message}");
+                MessageBox.Show($"Restore failed: {ex.Message}", "Restore Backup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnRenameBackup_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = BackupsDataGrid.SelectedItem as OptimizationBackupInfo;
+            if (selected == null)
+            {
+                MessageBox.Show("Select a backup first.", "Rename Backup", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var name = AskTextInput("Rename Backup", "New backup name:", selected.BackupName);
+            if (name == null)
+            {
+                return;
+            }
+
+            if (!OptimizationBackupManager.RenameBackup(selected.BackupId, name))
+            {
+                MessageBox.Show("Failed to rename backup.", "Rename Backup", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            RefreshBackupList();
+            LogMessage($"Backup renamed: {selected.BackupName} -> {name}");
+        }
+
+        private void BtnDeleteBackup_Click(object sender, RoutedEventArgs e)
+        {
+            var selected = BackupsDataGrid.SelectedItem as OptimizationBackupInfo;
+            if (selected == null)
+            {
+                MessageBox.Show("Select a backup first.", "Delete Backup", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show($"Delete backup '{selected.BackupName}'?", "Delete Backup", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            if (!OptimizationBackupManager.DeleteBackup(selected.BackupId))
+            {
+                MessageBox.Show("Failed to delete backup.", "Delete Backup", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            RefreshBackupList();
+            LogMessage($"Backup deleted: {selected.BackupName}");
+        }
+
+        private void RefreshBackupList()
+        {
+            if (_backupInfos == null)
+            {
+                return;
+            }
+
+            _backupInfos.Clear();
+            foreach (var backup in OptimizationBackupManager.ListBackups())
+            {
+                _backupInfos.Add(backup);
+            }
+        }
+
+        private string AskTextInput(string title, string label, string defaultValue = "")
+        {
+            var dialog = new Window
+            {
+                Title = title,
+                Width = 420,
+                Height = 180,
+                Owner = this,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                ResizeMode = ResizeMode.NoResize,
+                Background = System.Windows.Media.Brushes.White
+            };
+
+            var root = new Grid { Margin = new Thickness(14) };
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var text = new TextBlock { Text = label, Margin = new Thickness(0, 0, 0, 8) };
+            Grid.SetRow(text, 0);
+
+            var input = new TextBox { Text = defaultValue ?? string.Empty, MinWidth = 340, Padding = new Thickness(6) };
+            Grid.SetRow(input, 1);
+
+            var panel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
+            var ok = new Button { Content = "OK", Width = 90, Margin = new Thickness(0, 0, 8, 0) };
+            var cancel = new Button { Content = "Cancel", Width = 90 };
+            panel.Children.Add(ok);
+            panel.Children.Add(cancel);
+            Grid.SetRow(panel, 2);
+
+            root.Children.Add(text);
+            root.Children.Add(input);
+            root.Children.Add(panel);
+            dialog.Content = root;
+
+            string result = null;
+            ok.Click += (_, _) =>
+            {
+                var value = input.Text?.Trim();
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    MessageBox.Show("Value cannot be empty.", title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                result = value;
+                dialog.DialogResult = true;
+                dialog.Close();
+            };
+            cancel.Click += (_, _) =>
+            {
+                dialog.DialogResult = false;
+                dialog.Close();
+            };
+
+            dialog.ShowDialog();
+            return result;
+        }
+
+        private void OpenPromptEditor(string prompt)
+        {
+            var editor = new PromptEditorWindow(prompt) { Owner = this };
+            editor.ShowDialog();
+        }
+
+        private void BtnOpenServicesMsc_Click(object sender, RoutedEventArgs e)
+        {
+            OpenWindowsTool("services.msc", "Services console");
+        }
+
+        private void BtnOpenTaskScheduler_Click(object sender, RoutedEventArgs e)
+        {
+            OpenWindowsTool("taskschd.msc", "Task Scheduler");
+        }
+
+        private void BtnOpenStartupApps_Click(object sender, RoutedEventArgs e)
+        {
+            OpenWindowsTool("ms-settings:startupapps", "Startup Apps settings");
+        }
+
+        private void OpenWindowsTool(string fileName, string displayName)
+        {
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo(fileName) { UseShellExecute = true };
+                System.Diagnostics.Process.Start(psi);
+                LogMessage($"Opened {displayName}.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open {displayName}: {ex.Message}", "Open Tool Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                LogMessage($"[ERROR] Failed to open {displayName}: {ex.Message}");
+            }
+        }
+
+        private bool DisableScheduledTask(TaskData task)
+        {
+            if (task == null || string.IsNullOrWhiteSpace(task.TaskPath))
+            {
+                return false;
+            }
+
+            using (var taskService = new Microsoft.Win32.TaskScheduler.TaskService())
+            {
+                var scheduledTask = taskService.GetTask(task.TaskPath);
+                if (scheduledTask == null)
+                {
+                    return false;
+                }
+
+                if (scheduledTask.Enabled)
+                {
+                    scheduledTask.Enabled = false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool ApplyTaskAiRecommendation(TaskData task)
+        {
+            if (task == null)
+            {
+                return false;
+            }
+
+            var action = task.AiAction?.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(action))
+            {
+                return false;
+            }
+
+            return action.Contains("disable") || action.Contains("stop") || action.Contains("delete")
+                ? DisableScheduledTask(task)
+                : false;
+        }
+
+        private bool DisableAutorunEntry(AutorunData autorun)
+        {
+            if (autorun == null || string.IsNullOrWhiteSpace(autorun.EntryName))
+            {
+                return false;
+            }
+
+            bool removed = false;
+            removed |= TryDeleteAutorunValue(Microsoft.Win32.Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", autorun.EntryName);
+            removed |= TryDeleteAutorunValue(Microsoft.Win32.Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run", autorun.EntryName);
+            removed |= TryDeleteAutorunValue(Microsoft.Win32.Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", autorun.EntryName);
+            return removed;
+        }
+
+        private bool TryDeleteAutorunValue(Microsoft.Win32.RegistryKey root, string subKeyPath, string valueName)
+        {
+            using (var key = root.OpenSubKey(subKeyPath, writable: true))
+            {
+                if (key?.GetValue(valueName) == null)
+                {
+                    return false;
+                }
+
+                key.DeleteValue(valueName, false);
+                return true;
+            }
+        }
+
+        private bool ApplyAutorunAiRecommendation(AutorunData autorun)
+        {
+            if (autorun == null)
+            {
+                return false;
+            }
+
+            var action = autorun.AiAction?.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(action))
+            {
+                return false;
+            }
+
+            return action.Contains("disable") || action.Contains("stop") || action.Contains("delete")
+                ? DisableAutorunEntry(autorun)
+                : false;
+        }
+
+        private void ApplyServiceConfiguration(ServiceData service)
+        {
+            if (service == null || string.IsNullOrWhiteSpace(service.ServiceName))
+            {
+                throw new InvalidOperationException("Invalid service payload.");
+            }
+
+            var startupType = service.UserSelectedStartup?.Trim().ToLowerInvariant() switch
+            {
+                "automatic" => 2,
+                "delayed" => 2,
+                "disabled" => 4,
+                _ => 3
+            };
+
+            using (var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Services\{service.ServiceName}", writable: true))
+            {
+                if (key == null)
+                {
+                    throw new InvalidOperationException("Service registry key not found.");
+                }
+
+                key.SetValue("Start", startupType, Microsoft.Win32.RegistryValueKind.DWord);
+            }
+
+            using var serviceController = new System.ServiceProcess.ServiceController(service.ServiceName);
+            var desiredState = service.UserSelectedState?.Trim().ToLowerInvariant();
+            if (desiredState == "running" && serviceController.Status != System.ServiceProcess.ServiceControllerStatus.Running && startupType != 4)
+            {
+                serviceController.Start();
+            }
+            else if ((desiredState == "stopped" || desiredState == "paused" || startupType == 4) &&
+                     serviceController.Status == System.ServiceProcess.ServiceControllerStatus.Running)
+            {
+                serviceController.Stop();
+            }
+        }
+
+        private void RefreshOptimizationLists()
+        {
+            var scanner = new Scanner();
+
+            _services.Clear();
+            _serviceRecommendations.Clear();
+            foreach (var service in scanner.ScanServices())
+            {
+                service.UserSelectedStartup = service.CurrentStartup;
+                service.UserSelectedState = service.CurrentState;
+                _services.Add(service);
+            }
+            ServiceActionsPanel.ItemsSource = _services;
+
+            _tasks.Clear();
+            foreach (var task in scanner.ScanTasks())
+            {
+                _tasks.Add(task);
+            }
+            TaskActionsPanel.ItemsSource = _tasks;
+
+            _autoruns.Clear();
+            foreach (var autorun in scanner.ScanAutoruns())
+            {
+                _autoruns.Add(autorun);
+            }
+            AutorunActionsPanel.ItemsSource = _autoruns;
+        }
+
+        private static string BuildServiceStateSnapshot(string startup, string state)
+        {
+            return JsonConvert.SerializeObject(new
+            {
+                Startup = startup ?? "Unknown",
+                State = state ?? "Unknown"
+            });
+        }
+
+        private static string BuildTaskStateSnapshot(bool isEnabled)
+        {
+            return JsonConvert.SerializeObject(new
+            {
+                Enabled = isEnabled
+            });
+        }
+
+        private static string BuildAutorunStateSnapshot(string location, string entryName, string command)
+        {
+            return JsonConvert.SerializeObject(new
+            {
+                Location = location ?? "Unknown",
+                Name = entryName ?? "Unknown",
+                Present = !string.IsNullOrWhiteSpace(command),
+                Command = command ?? ""
+            });
         }
         #endregion
 

@@ -69,7 +69,7 @@ namespace WinOptimizer.AI
             
             LowImpactModeBox = new CheckBox
             {
-                Content = "Mode faible impact CPU",
+                Content = "Low Impact CPU mode",
                 IsChecked = _gpuMonitor?.LowImpactMode ?? true,
                 Margin = new Thickness(0, 10, 0, 0)
             };
@@ -220,7 +220,7 @@ namespace WinOptimizer.AI
                 }
                 catch
                 {
-                    MessageBox.Show("Paramètres appliqués. Sauvegarde non persistée (accès refusé).", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Settings applied, but persistence could not be saved (access denied).", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
 
                 MessageBox.Show("Settings saved successfully!", "Settings Saved", MessageBoxButton.OK, MessageBoxImage.Information);

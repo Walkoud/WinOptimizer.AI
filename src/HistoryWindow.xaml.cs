@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using Newtonsoft.Json.Linq;
 
 namespace WinOptimizer.AI
 {
@@ -13,6 +14,7 @@ namespace WinOptimizer.AI
         public HistoryWindow()
         {
             InitializeComponent();
+            ApplyLanguage();
             LoadHistory();
             
             // Subscribe to new entries to auto-refresh
@@ -58,13 +60,16 @@ namespace WinOptimizer.AI
             // Filter by action type
             if (TypeFilterComboBox.SelectedItem is ComboBoxItem item)
             {
-                var selected = item.Content.ToString();
+                var selected = (item.Tag?.ToString() ?? "all").ToLowerInvariant();
                 filtered = selected switch
                 {
-                    "🤖 AutoKill" => filtered.Where(e => e.Action == ActionType.AutoKill),
-                    "🔴 Manual Kill" => filtered.Where(e => e.Action == ActionType.ManualKill),
-                    "🛡️ Whitelist" => filtered.Where(e => e.Action == ActionType.WhitelistAdd),
-                    "😴 Snooze" => filtered.Where(e => e.Action == ActionType.Snooze),
+                    "autokill" => filtered.Where(e => e.Action == ActionType.AutoKill),
+                    "manualkill" => filtered.Where(e => e.Action == ActionType.ManualKill),
+                    "whitelist" => filtered.Where(e => e.Action == ActionType.WhitelistAdd),
+                    "service" => filtered.Where(e => e.TargetType == "Service"),
+                    "task" => filtered.Where(e => e.TargetType == "Task"),
+                    "autorun" => filtered.Where(e => e.TargetType == "Autorun"),
+                    "snooze" => filtered.Where(e => e.Action == ActionType.Snooze),
                     _ => filtered
                 };
             }
@@ -160,6 +165,128 @@ namespace WinOptimizer.AI
                 {
                     MessageBox.Show($"Failed to kill: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        private void BtnRestoreFromHistory_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.DataContext is not ActionHistoryEntry entry)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(entry.PreviousStateJson))
+            {
+                MessageBox.Show("No previous state stored for this entry.", "Restore", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            try
+            {
+                switch (entry.TargetType)
+                {
+                    case "Service":
+                        RestoreServiceFromHistory(entry);
+                        break;
+                    case "Task":
+                        RestoreTaskFromHistory(entry);
+                        break;
+                    case "Autorun":
+                        RestoreAutorunFromHistory(entry);
+                        break;
+                    default:
+                        MessageBox.Show("Restore is available only for Service/Task/Autorun entries.", "Restore", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                }
+
+                ActionHistory.Record(ActionType.StateRestored, entry.TargetType, entry.TargetName, entry.TargetPath,
+                    reason: "Restored from history", source: "History",
+                    previousStateJson: entry.AppliedStateJson, appliedStateJson: entry.PreviousStateJson);
+
+                LoadHistory();
+                MessageBox.Show($"State restored for '{entry.TargetName}'.", "Restore", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Restore failed: {ex.Message}", "Restore Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static void RestoreServiceFromHistory(ActionHistoryEntry entry)
+        {
+            var state = JObject.Parse(entry.PreviousStateJson);
+            var startup = state["Startup"]?.ToString() ?? "Manual";
+            var status = state["State"]?.ToString() ?? "Stopped";
+
+            var backupEntry = new ServiceBackupEntry
+            {
+                ServiceName = entry.TargetName,
+                StartupType = startup.ToLowerInvariant() switch
+                {
+                    "automatic" => 2,
+                    "delayed" => 2,
+                    "disabled" => 4,
+                    _ => 3
+                },
+                IsRunning = status.Equals("Running", StringComparison.OrdinalIgnoreCase)
+            };
+
+            OptimizationBackupManager.RestoreService(backupEntry);
+        }
+
+        private static void RestoreTaskFromHistory(ActionHistoryEntry entry)
+        {
+            var state = JObject.Parse(entry.PreviousStateJson);
+            var isEnabled = state["Enabled"]?.Value<bool>() ?? true;
+            var taskPath = string.IsNullOrWhiteSpace(entry.TargetPath) ? entry.TargetName : entry.TargetPath;
+
+            var backupEntry = new TaskBackupEntry
+            {
+                TaskPath = taskPath,
+                IsEnabled = isEnabled
+            };
+
+            OptimizationBackupManager.RestoreTask(backupEntry);
+        }
+
+        private static void RestoreAutorunFromHistory(ActionHistoryEntry entry)
+        {
+            var state = JObject.Parse(entry.PreviousStateJson);
+            var present = state["Present"]?.Value<bool>() ?? false;
+            if (!present)
+            {
+                throw new InvalidOperationException("Previous state indicates this autorun entry did not exist.");
+            }
+
+            var backupEntry = new AutorunBackupEntry
+            {
+                Location = state["Location"]?.ToString(),
+                EntryName = state["Name"]?.ToString() ?? entry.TargetName,
+                Command = state["Command"]?.ToString()
+            };
+
+            OptimizationBackupManager.RestoreAutorun(backupEntry);
+        }
+
+        private void ApplyLanguage()
+        {
+            Title = LanguageManager.GetString("HistoryTitle");
+            HistoryTitleText.Text = LanguageManager.GetString("HistoryHeader");
+            FilterLabelText.Text = LanguageManager.GetString("FilterLabel");
+            BtnExport.Content = LanguageManager.GetString("BtnExportHistoryJson");
+            BtnClearAll.Content = LanguageManager.GetString("BtnClearHistory");
+            BtnClose.Content = LanguageManager.GetString("PromptEditorBtnClose");
+
+            if (TypeFilterComboBox.Items.Count >= 8)
+            {
+                ((ComboBoxItem)TypeFilterComboBox.Items[0]).Content = LanguageManager.GetString("FilterAllActions");
+                ((ComboBoxItem)TypeFilterComboBox.Items[1]).Content = LanguageManager.GetString("FilterAutoKill");
+                ((ComboBoxItem)TypeFilterComboBox.Items[2]).Content = LanguageManager.GetString("FilterManualKill");
+                ((ComboBoxItem)TypeFilterComboBox.Items[3]).Content = LanguageManager.GetString("FilterWhitelist");
+                ((ComboBoxItem)TypeFilterComboBox.Items[4]).Content = LanguageManager.GetString("FilterServiceChanges");
+                ((ComboBoxItem)TypeFilterComboBox.Items[5]).Content = LanguageManager.GetString("FilterTaskChanges");
+                ((ComboBoxItem)TypeFilterComboBox.Items[6]).Content = LanguageManager.GetString("FilterAutorunChanges");
+                ((ComboBoxItem)TypeFilterComboBox.Items[7]).Content = LanguageManager.GetString("FilterSnooze");
             }
         }
 
